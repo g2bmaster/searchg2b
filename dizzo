@@ -1,0 +1,47 @@
+import os
+import requests
+from datetime import datetime, timedelta
+
+def get_bids():
+    # 환경변수에서 API 키 가져오기
+    service_key = os.environ.get('61203561a5f6b1757e496997889aa776c9484657a36d4aaea2de18b25192393b')
+    keywords = ['뉴미디어', '홍보', '온라인 홍보', '서포터즈', '서울창업허브', '농촌관광', '관광', '여행', '브랜딩', 'SNS', 'sns']
+    
+    # 최근 7일간의 공고 조회 범위 설정
+    end_date = datetime.now().strftime('%Y%m%d%H%M')
+    start_date = (datetime.now() - timedelta(days=7)).strftime('%Y%m%d0000')
+    
+    # 용역 입찰공고 API URL
+    url = "http://apis.data.go.kr/1230000/BidPublicInfoService05/getBidPblancListInfoServcPPSSrch01"
+    params = {
+        'serviceKey': service_key,
+        'numOfRows': '1000',
+        'inqryDiv': '1',
+        'inqryBgnDt': start_date,
+        'inqryEndDt': end_date,
+        'type': 'json'
+    }
+
+    try:
+        res = requests.get(url, params=params)
+        items = res.json().get('response', {}).get('body', {}).get('items', [])
+        
+        filtered_results = []
+        for item in items:
+            title = item.get('bidNtceNm', '')
+            # 키워드 필터링
+            if any(k in title for k in keywords):
+                link = item.get('bidNtceDtlUrl', '#')
+                org = item.get('ntceInsttNm', '기관명 미상')
+                filtered_results.append(f"- **[{title}]({link})** ({org})")
+        
+        return filtered_results
+    except Exception as e:
+        return [f"에러 발생: {e}"]
+
+if __name__ == "__main__":
+    bids = get_bids()
+    if bids:
+        print("\n".join(bids))
+    else:
+        print("최근 1주일간 해당 키워드의 공고가 없습니다.")
